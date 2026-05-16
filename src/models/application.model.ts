@@ -63,4 +63,23 @@ async function findByIdAndEmployer(applicationId: number, employerId: number): P
   return result.rows[0] ?? null;
 }
 
-export { findByJobAndApplicant, findByApplicant, findByJob, create, updateStatus, findByIdAndEmployer };
+async function findByIdWithDetails(
+  applicationId: number
+): Promise<(Application & { applicant_name: string; applicant_email: string; job_title: string; company_name: string }) | null> {
+  const result = await pool.query(
+    `SELECT a.*,
+            u.name  AS applicant_name,
+            u.email AS applicant_email,
+            j.title AS job_title,
+            c.name  AS company_name
+     FROM applications a
+     JOIN users      u ON a.applicant_id = u.id
+     JOIN jobs       j ON a.job_id       = j.id
+     JOIN companies  c ON j.company_id   = c.id
+     WHERE a.id = $1`,
+    [applicationId]
+  );
+  return result.rows[0] ?? null;
+}
+
+export { findByJobAndApplicant, findByApplicant, findByJob, create, updateStatus, findByIdAndEmployer, findByIdWithDetails };

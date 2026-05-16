@@ -1,6 +1,8 @@
 import { pool } from '../config/db';
 import * as applicationModel from '../models/application.model';
 import * as jobModel from '../models/job.model';
+import * as userModel from '../models/user.model';
+import * as emailService from './email.service';
 import { Application, ApplicationStatus, AppError } from '../types';
 
 async function applyToJob(jobId: number, applicantId: number, resumeUrl?: string): Promise<Application> {
@@ -37,7 +39,26 @@ async function applyToJob(jobId: number, applicantId: number, resumeUrl?: string
     );
 
     await client.query('COMMIT');
-    return result.rows[0];
+    const application = result.rows[0];
+
+    const [applicant, jobWithCompany] = await Promise.all([
+      userModel.findById(applicantId),
+      jobModel.findById(jobId),
+    ]);
+
+    if (applicant && jobWithCompany) {
+      const jobRow = jobWithCompany as typeof jobWithCompany & { company_name: string };
+      emailService
+        .sendApplicationConfirmation({
+          to: applicant.email,
+          applicantName: applicant.name,
+          jobTitle: jobRow.title,
+          companyName: jobRow.company_name,
+        })
+        .catch((err) => console.error('[Email] Failed to send confirmation:', err.message));
+    }
+
+    return application;
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -70,6 +91,21 @@ async function updateApplicationStatus(
   }
 
   const updated = await applicationModel.updateStatus(applicationId, status);
+
+  applicationModel
+    .findByIdWithDetails(applicationId)
+    .then((details) => {
+      if (!details) return;
+      return emailService.sendStatusUpdate({
+        to: details.applicant_email,
+        applicantName: details.applicant_name,
+        jobTitle: details.job_title,
+        companyName: details.company_name,
+        status,
+      });
+    })
+    .catch((err) => console.error('[Email] Failed to send status update:', err.message));
+
   return updated!;
 }
 
