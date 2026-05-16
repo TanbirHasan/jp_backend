@@ -4,9 +4,11 @@ import { ApplicationStatus } from '../types';
 
 async function applyToJob(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
+    const resumeUrl = req.file ? `/${req.file.path.replace(/\\/g, '/')}` : undefined;
     const application = await applicationService.applyToJob(
       Number(req.params.id),
-      req.user!.id
+      req.user!.id,
+      resumeUrl
     );
     res.status(201).json({ data: { application } });
   } catch (error) {

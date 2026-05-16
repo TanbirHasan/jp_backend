@@ -3,7 +3,7 @@ import * as applicationModel from '../models/application.model';
 import * as jobModel from '../models/job.model';
 import { Application, ApplicationStatus, AppError } from '../types';
 
-async function applyToJob(jobId: number, applicantId: number): Promise<Application> {
+async function applyToJob(jobId: number, applicantId: number, resumeUrl?: string): Promise<Application> {
   const job = await jobModel.findById(jobId);
   if (!job) {
     throw new AppError('Job not found', 404);
@@ -32,8 +32,8 @@ async function applyToJob(jobId: number, applicantId: number): Promise<Applicati
     }
 
     const result = await client.query<Application>(
-      'INSERT INTO applications (job_id, applicant_id) VALUES ($1, $2) RETURNING *',
-      [jobId, applicantId]
+      'INSERT INTO applications (job_id, applicant_id, resume_url) VALUES ($1, $2, $3) RETURNING *',
+      [jobId, applicantId, resumeUrl ?? null]
     );
 
     await client.query('COMMIT');

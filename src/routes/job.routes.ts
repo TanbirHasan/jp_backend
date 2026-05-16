@@ -4,7 +4,7 @@ import { getJobApplicants, applyToJob } from '../controllers/application.control
 import { protect, restrictTo } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validate.middleware';
 import { createJobSchema, updateJobSchema } from '../validators/job.validator';
-import { applyToJobSchema } from '../validators/application.validator';
+import { resumeUpload } from '../middlewares/upload.middleware';
 
 const router = Router();
 
@@ -14,7 +14,7 @@ router.post('/', protect, restrictTo('employer'), validate(createJobSchema), cre
 router.patch('/:id', protect, restrictTo('employer'), validate(updateJobSchema), updateJob);
 router.delete('/:id', protect, restrictTo('employer'), deleteJob);
 
-router.post('/:id/apply', protect, restrictTo('job_seeker'), validate(applyToJobSchema), applyToJob);
+router.post('/:id/apply', protect, restrictTo('job_seeker'), resumeUpload.single('resume'), applyToJob);
 router.get('/:id/applicants', protect, restrictTo('employer'), getJobApplicants);
 
 export default router;
