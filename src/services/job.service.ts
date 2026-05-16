@@ -1,16 +1,33 @@
 import * as jobModel from '../models/job.model';
 import * as companyModel from '../models/company.model';
+import { cache } from '../utils/cache';
 import { Job, JobType, JobStatus, JobFilters, PaginatedResult, AppError } from '../types';
 
+const JOB_TTL = 300;      // 5 minutes for individual jobs
+const LISTING_TTL = 60;   // 60 seconds for job listings
+
 async function getAllJobs(filters: JobFilters): Promise<PaginatedResult<Job>> {
-  return jobModel.findAll(filters);
+  const cacheKey = `jobs:${JSON.stringify(filters)}`;
+
+  const cached = await cache.get<PaginatedResult<Job>>(cacheKey);
+  if (cached) return cached;
+
+  const result = await jobModel.findAll(filters);
+  await cache.set(cacheKey, result, LISTING_TTL);
+
+  return result;
 }
 
 async function getJob(id: number): Promise<Job> {
+  const cacheKey = `job:${id}`;
+
+  const cached = await cache.get<Job>(cacheKey);
+  if (cached) return cached;
+
   const job = await jobModel.findById(id);
-  if (!job) {
-    throw new AppError('Job not found', 404);
-  }
+  if (!job) throw new AppError('Job not found', 404);
+
+  await cache.set(cacheKey, job, JOB_TTL);
   return job;
 }
 
@@ -34,7 +51,10 @@ async function createJob(
     throw new AppError('Title, description, and job type are required', 400);
   }
 
-  return jobModel.create({ ...data, company_id: company.id });
+  const job = await jobModel.create({ ...data, company_id: company.id });
+  await cache.delByPattern('jobs:*');
+
+  return job;
 }
 
 async function updateJob(
@@ -48,6 +68,12 @@ async function updateJob(
   }
 
   const updated = await jobModel.update(jobId, data);
+
+  await Promise.all([
+    cache.del(`job:${jobId}`),
+    cache.delByPattern('jobs:*'),
+  ]);
+
   return updated!;
 }
 
@@ -58,6 +84,11 @@ async function deleteJob(jobId: number, employerId: number): Promise<void> {
   }
 
   await jobModel.remove(jobId);
+
+  await Promise.all([
+    cache.del(`job:${jobId}`),
+    cache.delByPattern('jobs:*'),
+  ]);
 }
 
 export { getAllJobs, getJob, createJob, updateJob, deleteJob };

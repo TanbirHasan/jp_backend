@@ -49,3 +49,18 @@ CREATE TABLE IF NOT EXISTS applications (
   applied_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE (job_id, applicant_id)
 );
+
+-- Indexes for frequently filtered/sorted columns
+CREATE INDEX IF NOT EXISTS idx_jobs_status      ON jobs(status);
+CREATE INDEX IF NOT EXISTS idx_jobs_job_type    ON jobs(job_type);
+CREATE INDEX IF NOT EXISTS idx_jobs_company_id  ON jobs(company_id);
+CREATE INDEX IF NOT EXISTS idx_jobs_created_at  ON jobs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_jobs_salary_min  ON jobs(salary_min);
+
+-- Full-text search index (avoids building tsvector on every query)
+CREATE INDEX IF NOT EXISTS idx_jobs_fts ON jobs
+  USING GIN(to_tsvector('english', title || ' ' || description));
+
+CREATE INDEX IF NOT EXISTS idx_applications_applicant_id ON applications(applicant_id);
+CREATE INDEX IF NOT EXISTS idx_applications_job_id       ON applications(job_id);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id    ON refresh_tokens(user_id);
