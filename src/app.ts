@@ -6,14 +6,29 @@ import cookieParser from 'cookie-parser';
 
 import routes from './routes';
 import { notFound, errorHandler } from './middlewares/error.middleware';
+import { generalLimiter } from './middlewares/rateLimiter.middleware';
 
 const app = express();
 
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(',');
+
 app.use(helmet());
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    maxAge: 86400,
+  })
+);
+app.use(generalLimiter);
 app.use(express.json());
 app.use(cookieParser());
 app.use(morgan('dev'));
