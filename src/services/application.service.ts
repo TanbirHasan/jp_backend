@@ -3,6 +3,7 @@ import * as applicationModel from '../models/application.model';
 import * as jobModel from '../models/job.model';
 import * as userModel from '../models/user.model';
 import * as emailService from './email.service';
+import { publishNotification } from '../websocket/pubsub';
 import { Application, ApplicationStatus, AppError } from '../types';
 
 async function applyToJob(jobId: number, applicantId: number, resumeUrl?: string): Promise<Application> {
@@ -92,6 +93,15 @@ async function updateApplicationStatus(
 
   const updated = await applicationModel.updateStatus(applicationId, status);
 
+  // Publish to Redis — all workers receive it, the right one delivers to the user
+  publishNotification(updated!.applicant_id, {
+    type: 'application_status_update',
+    applicationId: updated!.id,
+    status: updated!.status,
+    message: `Your application status has been updated to: ${status}`,
+  }).catch((err) => console.error('[PubSub] Failed to publish:', err.message));
+
+  // Email notification — fire and forget for offline users
   applicationModel
     .findByIdWithDetails(applicationId)
     .then((details) => {

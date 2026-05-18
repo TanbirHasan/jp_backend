@@ -1,11 +1,15 @@
 import 'dotenv/config';
 import cluster from 'cluster';
 import os from 'os';
+import http from 'http';
 import app from './app';
 import { pool } from './config/db';
+import { initWebSocketServer } from './websocket/socket.server';
 
 const PORT = process.env.PORT || 5000;
 const isProd = process.env.NODE_ENV === 'production';
+
+// 2 workers in dev — Redis Pub/Sub handles cross-worker WebSocket delivery
 const NUM_WORKERS = isProd ? os.cpus().length : 2;
 
 async function startWorker(): Promise<void> {
@@ -13,7 +17,10 @@ async function startWorker(): Promise<void> {
     await pool.query('SELECT NOW()');
     console.log(`[Worker ${process.pid}] PostgreSQL connected`);
 
-    app.listen(PORT, () => {
+    const httpServer = http.createServer(app);
+    initWebSocketServer(httpServer);
+
+    httpServer.listen(PORT, () => {
       console.log(`[Worker ${process.pid}] Running on port ${PORT}`);
     });
   } catch (error) {
