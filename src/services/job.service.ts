@@ -1,7 +1,7 @@
 import * as jobModel from '../models/job.model';
 import * as companyModel from '../models/company.model';
 import { cache } from '../utils/cache';
-import { Job, JobType, JobStatus, JobFilters, PaginatedResult, AppError } from '../types';
+import { Job, JobType, JobStatus, JobFilters, PaginatedResult, CursorFilters, CursorPaginatedResult, AppError } from '../types';
 
 const JOB_TTL = 300;      // 5 minutes for individual jobs
 const LISTING_TTL = 60;   // 60 seconds for job listings
@@ -13,6 +13,18 @@ async function getAllJobs(filters: JobFilters): Promise<PaginatedResult<Job>> {
   if (cached) return cached;
 
   const result = await jobModel.findAll(filters);
+  await cache.set(cacheKey, result, LISTING_TTL);
+
+  return result;
+}
+
+async function getAllJobsCursor(filters: CursorFilters): Promise<CursorPaginatedResult<Job>> {
+  const cacheKey = `jobs:cursor:${JSON.stringify(filters)}`;
+
+  const cached = await cache.get<CursorPaginatedResult<Job>>(cacheKey);
+  if (cached) return cached;
+
+  const result = await jobModel.findAllCursor(filters);
   await cache.set(cacheKey, result, LISTING_TTL);
 
   return result;
@@ -91,4 +103,4 @@ async function deleteJob(jobId: number, employerId: number): Promise<void> {
   ]);
 }
 
-export { getAllJobs, getJob, createJob, updateJob, deleteJob };
+export { getAllJobs, getAllJobsCursor, getJob, createJob, updateJob, deleteJob };

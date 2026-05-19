@@ -48,6 +48,16 @@ export interface JobFilters {
   limit?: number;
 }
 
+export interface CursorFilters {
+  search?: string;
+  job_type?: JobType;
+  location?: string;
+  salary_min?: number;
+  salary_max?: number;
+  cursor?: number;
+  limit?: number;
+}
+
 export interface Pagination {
   total: number;
   page: number;
@@ -55,9 +65,20 @@ export interface Pagination {
   totalPages: number;
 }
 
+export interface CursorPagination {
+  nextCursor: number | null;
+  hasMore: boolean;
+  limit: number;
+}
+
 export interface PaginatedResult<T> {
   data: T[];
   pagination: Pagination;
+}
+
+export interface CursorPaginatedResult<T> {
+  data: T[];
+  pagination: CursorPagination;
 }
 
 export interface Company {

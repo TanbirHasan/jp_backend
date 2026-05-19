@@ -23,6 +23,26 @@ async function getAllJobs(req: Request, res: Response, next: NextFunction): Prom
   }
 }
 
+async function getJobsCursor(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { search, job_type, location, salary_min, salary_max, cursor, limit } = req.query;
+
+    const result = await jobService.getAllJobsCursor({
+      search: search as string,
+      job_type: job_type as any,
+      location: location as string,
+      salary_min: salary_min ? Number(salary_min) : undefined,
+      salary_max: salary_max ? Number(salary_max) : undefined,
+      cursor: cursor ? Number(cursor) : undefined,
+      limit: limit ? Number(limit) : 10,
+    });
+
+    res.status(200).json({ data: result.data, pagination: result.pagination });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function getJob(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const job = await jobService.getJob(Number(req.params.id));
@@ -59,4 +79,4 @@ async function deleteJob(req: Request, res: Response, next: NextFunction): Promi
   }
 }
 
-export { getAllJobs, getJob, createJob, updateJob, deleteJob };
+export { getAllJobs, getJobsCursor, getJob, createJob, updateJob, deleteJob };

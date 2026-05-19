@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAllJobs, getJob, createJob, updateJob, deleteJob } from '../controllers/job.controller';
+import { getAllJobs, getJobsCursor, getJob, createJob, updateJob, deleteJob } from '../controllers/job.controller';
 import { getJobApplicants, applyToJob } from '../controllers/application.controller';
 import { protect, restrictTo } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validate.middleware';
@@ -9,6 +9,7 @@ import { resumeUpload } from '../middlewares/upload.middleware';
 const router = Router();
 
 router.get('/', getAllJobs);
+router.get('/cursor', getJobsCursor);
 router.get('/:id', getJob);
 router.post('/', protect, restrictTo('employer'), validate(createJobSchema), createJob);
 router.patch('/:id', protect, restrictTo('employer'), validate(updateJobSchema), updateJob);
