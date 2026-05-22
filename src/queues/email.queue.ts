@@ -16,6 +16,26 @@ export type EmailJobData =
       jobTitle: string;
       companyName: string;
       status: string;
+    }
+  | {
+      type: 'job_alert';
+      to: string;
+      userName: string;
+      jobTitle: string;
+      companyName: string;
+      location: string | null;
+      jobType: string;
+      jobId: number;
+    }
+  | {
+      type: 'company_new_job';
+      to: string;
+      userName: string;
+      companyName: string;
+      jobTitle: string;
+      location: string | null;
+      jobType: string;
+      jobId: number;
     };
 
 export const emailQueue = new Queue<EmailJobData>('email', {

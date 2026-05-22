@@ -113,6 +113,22 @@ export interface Application {
   applied_at: Date;
 }
 
+export interface CompanyFollow {
+  id: number;
+  user_id: number;
+  company_id: number;
+  followed_at: Date;
+}
+
+export interface JobAlert {
+  id: number;
+  user_id: number;
+  keywords: string | null;
+  job_type: JobType | null;
+  location: string | null;
+  created_at: Date;
+}
+
 export class AppError extends Error {
   statusCode: number;
 

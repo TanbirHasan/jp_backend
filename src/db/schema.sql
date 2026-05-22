@@ -64,3 +64,25 @@ CREATE INDEX IF NOT EXISTS idx_jobs_fts ON jobs
 CREATE INDEX IF NOT EXISTS idx_applications_applicant_id ON applications(applicant_id);
 CREATE INDEX IF NOT EXISTS idx_applications_job_id       ON applications(job_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id    ON refresh_tokens(user_id);
+
+CREATE TABLE IF NOT EXISTS job_alerts (
+  id         SERIAL PRIMARY KEY,
+  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  keywords   VARCHAR(100),
+  job_type   VARCHAR(20) CHECK (job_type IN ('full_time', 'part_time', 'contract', 'remote')),
+  location   VARCHAR(100),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_job_alerts_user_id ON job_alerts(user_id);
+
+CREATE TABLE IF NOT EXISTS company_followers (
+  id          SERIAL PRIMARY KEY,
+  user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  company_id  INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  followed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (user_id, company_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_company_followers_user_id    ON company_followers(user_id);
+CREATE INDEX IF NOT EXISTS idx_company_followers_company_id ON company_followers(company_id);

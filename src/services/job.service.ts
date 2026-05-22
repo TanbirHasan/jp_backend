@@ -1,5 +1,7 @@
 import * as jobModel from '../models/job.model';
 import * as companyModel from '../models/company.model';
+import { notifyMatchingAlerts } from './alert.service';
+import { notifyCompanyFollowers } from './follow.service';
 import { cache } from '../utils/cache';
 import { Job, JobType, JobStatus, JobFilters, PaginatedResult, CursorFilters, CursorPaginatedResult, AppError } from '../types';
 
@@ -65,6 +67,15 @@ async function createJob(
 
   const job = await jobModel.create({ ...data, company_id: company.id });
   await cache.delByPattern('jobs:*');
+
+  // Fire-and-forget — never block job creation for alert delivery
+  notifyMatchingAlerts(job, company.name).catch((err) =>
+    console.error('[Alerts] Failed to notify subscribers:', err.message)
+  );
+
+  notifyCompanyFollowers(job, company).catch((err) =>
+    console.error('[Follow] Failed to notify followers:', err.message)
+  );
 
   return job;
 }
