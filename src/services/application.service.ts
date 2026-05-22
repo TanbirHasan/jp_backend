@@ -119,4 +119,23 @@ async function updateApplicationStatus(
   return updated!;
 }
 
-export { applyToJob, getMyApplications, getJobApplicants, updateApplicationStatus };
+async function getResumeFilePath(applicationId: number, requestingUserId: number): Promise<string> {
+  const row = await applicationModel.findByIdForDownload(applicationId);
+
+  if (!row) {
+    throw new AppError('Application not found', 404);
+  }
+
+  if (row.applicant_id !== requestingUserId && row.employer_id !== requestingUserId) {
+    throw new AppError('You do not have permission to access this resume', 403);
+  }
+
+  if (!row.resume_url) {
+    throw new AppError('No resume was uploaded for this application', 404);
+  }
+
+  // resume_url is stored as "/uploads/resumes/filename.pdf" — strip leading slash for fs path
+  return row.resume_url.replace(/^\//, '');
+}
+
+export { applyToJob, getMyApplications, getJobApplicants, updateApplicationStatus, getResumeFilePath };

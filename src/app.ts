@@ -33,7 +33,9 @@ app.use(generalLimiter);
 app.use(express.json());
 app.use(cookieParser());
 app.use(morgan('dev'));
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+// Company logos are public — they appear on job listings viewed by everyone
+app.use('/uploads/logos', express.static(path.join(process.cwd(), 'uploads/logos')));
+// Resumes are private — served only through the authenticated download endpoint
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
