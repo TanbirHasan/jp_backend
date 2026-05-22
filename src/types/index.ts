@@ -129,6 +129,18 @@ export interface JobAlert {
   created_at: Date;
 }
 
+export interface EmployerStats {
+  total_jobs_posted: number;
+  open_jobs: number;
+  total_applications_received: number;
+  applications_this_week: number;
+  most_applied_job: {
+    id: number;
+    title: string;
+    count: number;
+  } | null;
+}
+
 export class AppError extends Error {
   statusCode: number;
 
