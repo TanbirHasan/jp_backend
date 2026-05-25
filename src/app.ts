@@ -37,7 +37,7 @@ const corsOptions = {
 
 // CORS and preflight must come before helmet and everything else
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 app.use(helmet());
 app.use(generalLimiter);
