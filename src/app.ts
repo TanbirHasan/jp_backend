@@ -15,33 +15,40 @@ const allowedOrigins = (
   process.env.ALLOWED_ORIGINS || "http://localhost:3000"
 ).split(",");
 
+console.log("[CORS] Allowed origins:", allowedOrigins);
+
+const corsOptions = {
+  origin: (
+    origin: string | undefined,
+    callback: (err: Error | null, allow?: boolean) => void,
+  ) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log("[CORS] Blocked origin:", origin);
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  maxAge: 86400,
+};
+
+// CORS and preflight must come before helmet and everything else
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
+
 app.use(helmet());
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    maxAge: 86400,
-  }),
-);
-app.options("*", cors());
 app.use(generalLimiter);
 app.use(express.json());
 app.use(cookieParser());
 app.use(morgan("dev"));
-// Company logos are public — they appear on job listings viewed by everyone
+
 app.use(
   "/uploads/logos",
   express.static(path.join(process.cwd(), "uploads/logos")),
 );
-// Resumes are private — served only through the authenticated download endpoint
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok", message: "Server is running" });
