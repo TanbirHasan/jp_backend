@@ -1,5 +1,8 @@
 import * as companyModel from '../models/company.model';
+import { cache } from '../utils/cache';
 import { Company, AppError } from '../types';
+
+const COMPANY_TTL = 600; // 10 minutes
 
 async function createCompany(
   employerId: number,
@@ -18,10 +21,15 @@ async function createCompany(
 }
 
 async function getCompany(id: number): Promise<Company> {
+  const cacheKey = `company:${id}`;
+
+  const cached = await cache.get<Company>(cacheKey);
+  if (cached) return cached;
+
   const company = await companyModel.findById(id);
-  if (!company) {
-    throw new AppError('Company not found', 404);
-  }
+  if (!company) throw new AppError('Company not found', 404);
+
+  await cache.set(cacheKey, company, COMPANY_TTL);
   return company;
 }
 
@@ -40,6 +48,8 @@ async function updateCompany(
   }
 
   const updated = await companyModel.update(companyId, data);
+  await cache.del(`company:${companyId}`);
+
   return updated!;
 }
 

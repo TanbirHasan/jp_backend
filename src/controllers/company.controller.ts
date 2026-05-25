@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as companyService from '../services/company.service';
+import { AppError } from '../types';
 
 async function createCompany(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -32,4 +33,21 @@ async function updateCompany(req: Request, res: Response, next: NextFunction): P
   }
 }
 
-export { createCompany, getCompany, updateCompany };
+async function uploadLogo(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    if (!req.file) {
+      return next(new AppError('No file uploaded', 400));
+    }
+    const logoUrl = `/${req.file.path.replace(/\\/g, '/')}`;
+    const company = await companyService.updateCompany(
+      Number(req.params.id),
+      req.user!.id,
+      { logo_url: logoUrl }
+    );
+    res.status(200).json({ data: { company } });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export { createCompany, getCompany, updateCompany, uploadLogo };
