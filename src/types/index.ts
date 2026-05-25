@@ -141,6 +141,46 @@ export interface EmployerStats {
   } | null;
 }
 
+export type TrackerStatus =
+  | 'applied'
+  | 'assessment'
+  | 'interview'
+  | 'offer'
+  | 'rejected'
+  | 'ghosted'
+  | 'withdrawn';
+
+export interface TrackerEntry {
+  id: number;
+  user_id: number;
+  job_title: string;
+  company_name: string;
+  job_url: string | null;
+  platform: string | null;
+  location: string | null;
+  job_type: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  currency: string | null;
+  applied_date: Date;
+  deadline: Date | null;
+  application_status: TrackerStatus;
+  task_link: string | null;
+  task_deadline: Date | null;
+  interview_date: Date | null;
+  interview_type: string | null;
+  notes: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface TrackerFilters {
+  status?: TrackerStatus;
+  platform?: string;
+  sort?: 'applied_date' | 'deadline' | 'created_at';
+  order?: 'asc' | 'desc';
+}
+
 export class AppError extends Error {
   statusCode: number;
 

@@ -86,3 +86,44 @@ CREATE TABLE IF NOT EXISTS company_followers (
 
 CREATE INDEX IF NOT EXISTS idx_company_followers_user_id    ON company_followers(user_id);
 CREATE INDEX IF NOT EXISTS idx_company_followers_company_id ON company_followers(company_id);
+
+CREATE TABLE IF NOT EXISTS job_tracker (
+  id                 SERIAL PRIMARY KEY,
+  user_id            INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+
+  -- Job info (manual entry, any platform)
+  job_title          VARCHAR(150) NOT NULL,
+  company_name       VARCHAR(150) NOT NULL,
+  job_url            VARCHAR(500),
+  platform           VARCHAR(100),
+  location           VARCHAR(150),
+  job_type           VARCHAR(50),
+  salary_min         INTEGER,
+  salary_max         INTEGER,
+  currency           VARCHAR(10) DEFAULT 'BDT',
+
+  -- Dates
+  applied_date       DATE NOT NULL DEFAULT CURRENT_DATE,
+  deadline           DATE,
+
+  -- Status
+  application_status VARCHAR(50) NOT NULL DEFAULT 'applied'
+    CHECK (application_status IN ('applied','assessment','interview','offer','rejected','ghosted','withdrawn')),
+
+  -- Task / Assessment
+  task_link          VARCHAR(500),
+  task_deadline      DATE,
+
+  -- Interview
+  interview_date     TIMESTAMP,
+  interview_type     VARCHAR(50),
+
+  -- Notes
+  notes              TEXT,
+
+  created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_job_tracker_user_id ON job_tracker(user_id);
+CREATE INDEX IF NOT EXISTS idx_job_tracker_status  ON job_tracker(application_status);
