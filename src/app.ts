@@ -3,8 +3,6 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
-import path from "path";
-
 import routes from "./routes";
 import { notFound, errorHandler } from "./middlewares/error.middleware";
 import { generalLimiter } from "./middlewares/rateLimiter.middleware";
@@ -45,10 +43,6 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(morgan("dev"));
 
-app.use(
-  "/uploads/logos",
-  express.static(path.join(process.cwd(), "uploads/logos")),
-);
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok", message: "Server is running" });

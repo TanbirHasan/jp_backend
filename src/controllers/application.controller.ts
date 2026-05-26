@@ -1,11 +1,17 @@
 import { Request, Response, NextFunction } from 'express';
-import path from 'path';
 import * as applicationService from '../services/application.service';
+import { uploadResumeToCloudinary } from '../config/cloudinary';
 import { ApplicationStatus } from '../types';
 
 async function applyToJob(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const resumeUrl = req.file ? `/${req.file.path.replace(/\\/g, '/')}` : undefined;
+    let resumeUrl: string | undefined;
+
+    if (req.file) {
+      const result = await uploadResumeToCloudinary(req.file.buffer, req.file.originalname);
+      resumeUrl = result.secure_url;
+    }
+
     const application = await applicationService.applyToJob(
       Number(req.params.id),
       req.user!.id,
@@ -53,12 +59,11 @@ async function updateApplicationStatus(req: Request, res: Response, next: NextFu
 
 async function downloadResume(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const filePath = await applicationService.getResumeFilePath(
+    const resumeUrl = await applicationService.getResumeUrl(
       Number(req.params.id),
       req.user!.id
     );
-    const absolutePath = path.join(process.cwd(), filePath);
-    res.download(absolutePath);
+    res.redirect(resumeUrl);
   } catch (error) {
     next(error);
   }

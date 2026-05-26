@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as companyService from '../services/company.service';
+import { uploadLogoToCloudinary } from '../config/cloudinary';
 import { AppError } from '../types';
 
 async function createCompany(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -38,11 +39,11 @@ async function uploadLogo(req: Request, res: Response, next: NextFunction): Prom
     if (!req.file) {
       return next(new AppError('No file uploaded', 400));
     }
-    const logoUrl = `/${req.file.path.replace(/\\/g, '/')}`;
+    const result = await uploadLogoToCloudinary(req.file.buffer, req.file.originalname);
     const company = await companyService.updateCompany(
       Number(req.params.id),
       req.user!.id,
-      { logo_url: logoUrl }
+      { logo_url: result.secure_url }
     );
     res.status(200).json({ data: { company } });
   } catch (error) {

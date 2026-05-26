@@ -119,7 +119,7 @@ async function updateApplicationStatus(
   return updated!;
 }
 
-async function getResumeFilePath(applicationId: number, requestingUserId: number): Promise<string> {
+async function getResumeUrl(applicationId: number, requestingUserId: number): Promise<string> {
   const row = await applicationModel.findByIdForDownload(applicationId);
 
   if (!row) {
@@ -134,8 +134,7 @@ async function getResumeFilePath(applicationId: number, requestingUserId: number
     throw new AppError('No resume was uploaded for this application', 404);
   }
 
-  // resume_url is stored as "/uploads/resumes/filename.pdf" — strip leading slash for fs path
-  return row.resume_url.replace(/^\//, '');
+  return row.resume_url;
 }
 
-export { applyToJob, getMyApplications, getJobApplicants, updateApplicationStatus, getResumeFilePath };
+export { applyToJob, getMyApplications, getJobApplicants, updateApplicationStatus, getResumeUrl };
