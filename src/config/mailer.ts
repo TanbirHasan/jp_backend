@@ -1,38 +1,42 @@
 import nodemailer, { Transporter } from 'nodemailer';
-
-let transporter: Transporter | null = null;
+import { Resend } from 'resend';
 
 export const FROM_ADDRESS =
-  process.env.SMTP_FROM ?? '"Job Board" <onboarding@resend.dev>';
+  process.env.SMTP_FROM ?? 'Job Board <onboarding@resend.dev>';
 
-async function getTransporter(): Promise<Transporter> {
-  if (transporter) return transporter;
+let resendClient: Resend | null = null;
+let devTransporter: Transporter | null = null;
 
+export async function sendEmail(options: {
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<void> {
   if (process.env.NODE_ENV === 'production') {
-    transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
-      secure: Number(process.env.SMTP_PORT) === 465,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
+    if (!resendClient) {
+      resendClient = new Resend(process.env.RESEND_API_KEY);
+    }
+    const { error } = await resendClient.emails.send({
+      from: FROM_ADDRESS,
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
     });
+    if (error) throw new Error(error.message);
   } else {
-    const testAccount = await nodemailer.createTestAccount();
-    console.log(`[Mailer] Ethereal user: ${testAccount.user}`);
-    console.log(`[Mailer] Ethereal pass: ${testAccount.pass}`);
-    transporter = nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass,
-      },
+    if (!devTransporter) {
+      const testAccount = await nodemailer.createTestAccount();
+      console.log(`[Mailer] Ethereal user: ${testAccount.user}`);
+      devTransporter = nodemailer.createTransport({
+        host: 'smtp.ethereal.email',
+        port: 587,
+        auth: { user: testAccount.user, pass: testAccount.pass },
+      });
+    }
+    const info = await devTransporter.sendMail({
+      from: FROM_ADDRESS,
+      ...options,
     });
+    console.log(`[Email] Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
   }
-
-  return transporter;
 }
-
-export { getTransporter };

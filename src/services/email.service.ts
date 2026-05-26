@@ -1,5 +1,4 @@
-import nodemailer from 'nodemailer';
-import { getTransporter, FROM_ADDRESS } from '../config/mailer';
+import { sendEmail, FROM_ADDRESS } from '../config/mailer';
 
 async function sendApplicationConfirmation(data: {
   to: string;
@@ -7,10 +6,7 @@ async function sendApplicationConfirmation(data: {
   jobTitle: string;
   companyName: string;
 }): Promise<void> {
-  const transporter = await getTransporter();
-
-  const info = await transporter.sendMail({
-    from: FROM_ADDRESS,
+  await sendEmail({
     to: data.to,
     subject: `Application received — ${data.jobTitle}`,
     html: `
@@ -20,10 +16,6 @@ async function sendApplicationConfirmation(data: {
       <p>We'll notify you when your application status changes.</p>
     `,
   });
-
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`[Email] Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
-  }
 }
 
 async function sendStatusUpdate(data: {
@@ -33,10 +25,7 @@ async function sendStatusUpdate(data: {
   companyName: string;
   status: string;
 }): Promise<void> {
-  const transporter = await getTransporter();
-
-  const info = await transporter.sendMail({
-    from: FROM_ADDRESS,
+  await sendEmail({
     to: data.to,
     subject: `Application update — ${data.jobTitle}`,
     html: `
@@ -46,10 +35,6 @@ async function sendStatusUpdate(data: {
       <p>New status: <strong>${data.status.replace('_', ' ')}</strong></p>
     `,
   });
-
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`[Email] Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
-  }
 }
 
 async function sendJobAlert(data: {
@@ -61,10 +46,7 @@ async function sendJobAlert(data: {
   jobType: string;
   jobId: number;
 }): Promise<void> {
-  const transporter = await getTransporter();
-
-  const info = await transporter.sendMail({
-    from: FROM_ADDRESS,
+  await sendEmail({
     to: data.to,
     subject: `New job match — ${data.jobTitle}`,
     html: `
@@ -79,10 +61,6 @@ async function sendJobAlert(data: {
       <p>Log in to view the full listing and apply.</p>
     `,
   });
-
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`[Email] Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
-  }
 }
 
 async function sendCompanyNewJob(data: {
@@ -94,10 +72,7 @@ async function sendCompanyNewJob(data: {
   jobType: string;
   jobId: number;
 }): Promise<void> {
-  const transporter = await getTransporter();
-
-  const info = await transporter.sendMail({
-    from: FROM_ADDRESS,
+  await sendEmail({
     to: data.to,
     subject: `${data.companyName} just posted a new job`,
     html: `
@@ -112,10 +87,6 @@ async function sendCompanyNewJob(data: {
       <p>Log in to view the full listing and apply.</p>
     `,
   });
-
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`[Email] Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
-  }
 }
 
 export { sendApplicationConfirmation, sendStatusUpdate, sendJobAlert, sendCompanyNewJob };
