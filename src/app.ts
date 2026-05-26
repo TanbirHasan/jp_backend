@@ -9,6 +9,10 @@ import { generalLimiter } from "./middlewares/rateLimiter.middleware";
 
 const app = express();
 
+// Railway (and most cloud platforms) sit behind a reverse proxy that sets X-Forwarded-For.
+// Without this, express-rate-limit cannot identify real client IPs and throws a validation error.
+app.set('trust proxy', 1);
+
 const allowedOrigins = (
   process.env.ALLOWED_ORIGINS || "http://localhost:3000"
 ).split(",");
