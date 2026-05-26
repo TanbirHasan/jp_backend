@@ -1,9 +1,12 @@
 import { pool } from '../config/db';
 import * as applicationModel from '../models/application.model';
 import * as jobModel from '../models/job.model';
+import * as userModel from '../models/user.model';
+import * as emailService from './email.service';
+import { publishNotification } from '../websocket/pubsub';
 import { Application, ApplicationStatus, AppError } from '../types';
 
-async function applyToJob(jobId: number, applicantId: number): Promise<Application> {
+async function applyToJob(jobId: number, applicantId: number, resumeUrl?: string): Promise<Application> {
   const job = await jobModel.findById(jobId);
   if (!job) {
     throw new AppError('Job not found', 404);
@@ -32,12 +35,31 @@ async function applyToJob(jobId: number, applicantId: number): Promise<Applicati
     }
 
     const result = await client.query<Application>(
-      'INSERT INTO applications (job_id, applicant_id) VALUES ($1, $2) RETURNING *',
-      [jobId, applicantId]
+      'INSERT INTO applications (job_id, applicant_id, resume_url) VALUES ($1, $2, $3) RETURNING *',
+      [jobId, applicantId, resumeUrl ?? null]
     );
 
     await client.query('COMMIT');
-    return result.rows[0];
+    const application = result.rows[0];
+
+    const [applicant, jobWithCompany] = await Promise.all([
+      userModel.findById(applicantId),
+      jobModel.findById(jobId),
+    ]);
+
+    if (applicant && jobWithCompany) {
+      const jobRow = jobWithCompany as typeof jobWithCompany & { company_name: string };
+      emailService
+        .sendApplicationConfirmation({
+          to: applicant.email,
+          applicantName: applicant.name,
+          jobTitle: jobRow.title,
+          companyName: jobRow.company_name,
+        })
+        .catch((err) => console.error('[Email] Failed to send confirmation:', err.message));
+    }
+
+    return application;
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -70,7 +92,50 @@ async function updateApplicationStatus(
   }
 
   const updated = await applicationModel.updateStatus(applicationId, status);
+
+  // Publish to Redis — all workers receive it, the right one delivers to the user
+  publishNotification(updated!.applicant_id, {
+    type: 'application_status_update',
+    applicationId: updated!.id,
+    status: updated!.status,
+    message: `Your application status has been updated to: ${status}`,
+  }).catch((err) => console.error('[PubSub] Failed to publish:', err.message));
+
+  // Email notification — fire and forget for offline users
+  applicationModel
+    .findByIdWithDetails(applicationId)
+    .then((details) => {
+      if (!details) return;
+      return emailService.sendStatusUpdate({
+        to: details.applicant_email,
+        applicantName: details.applicant_name,
+        jobTitle: details.job_title,
+        companyName: details.company_name,
+        status,
+      });
+    })
+    .catch((err) => console.error('[Email] Failed to send status update:', err.message));
+
   return updated!;
 }
 
-export { applyToJob, getMyApplications, getJobApplicants, updateApplicationStatus };
+async function getResumeFilePath(applicationId: number, requestingUserId: number): Promise<string> {
+  const row = await applicationModel.findByIdForDownload(applicationId);
+
+  if (!row) {
+    throw new AppError('Application not found', 404);
+  }
+
+  if (row.applicant_id !== requestingUserId && row.employer_id !== requestingUserId) {
+    throw new AppError('You do not have permission to access this resume', 403);
+  }
+
+  if (!row.resume_url) {
+    throw new AppError('No resume was uploaded for this application', 404);
+  }
+
+  // resume_url is stored as "/uploads/resumes/filename.pdf" — strip leading slash for fs path
+  return row.resume_url.replace(/^\//, '');
+}
+
+export { applyToJob, getMyApplications, getJobApplicants, updateApplicationStatus, getResumeFilePath };

@@ -1,5 +1,5 @@
 import { pool } from '../config/db';
-import { Job, JobType, JobFilters, PaginatedResult } from '../types';
+import { Job, JobType, JobFilters, PaginatedResult, CursorFilters, CursorPaginatedResult } from '../types';
 
 interface CreateJobData {
   company_id: number;
@@ -93,6 +93,75 @@ async function findAll(filters: JobFilters = {}): Promise<PaginatedResult<Job>> 
   };
 }
 
+async function findAllCursor(filters: CursorFilters = {}): Promise<CursorPaginatedResult<Job>> {
+  const { search, job_type, location, salary_min, salary_max, cursor, limit = 10 } = filters;
+
+  const conditions: string[] = ["j.status = 'open'"];
+  const params: unknown[] = [];
+  let i = 1;
+
+  if (cursor) {
+    conditions.push(`j.id < $${i}`);
+    params.push(cursor);
+    i++;
+  }
+
+  if (search) {
+    conditions.push(
+      `to_tsvector('english', j.title || ' ' || j.description) @@ plainto_tsquery('english', $${i})`
+    );
+    params.push(search);
+    i++;
+  }
+
+  if (job_type) {
+    conditions.push(`j.job_type = $${i}`);
+    params.push(job_type);
+    i++;
+  }
+
+  if (location) {
+    conditions.push(`j.location ILIKE $${i}`);
+    params.push(`%${location}%`);
+    i++;
+  }
+
+  if (salary_min !== undefined) {
+    conditions.push(`j.salary_min >= $${i}`);
+    params.push(salary_min);
+    i++;
+  }
+
+  if (salary_max !== undefined) {
+    conditions.push(`j.salary_max <= $${i}`);
+    params.push(salary_max);
+    i++;
+  }
+
+  const safeLimit = Math.min(Number(limit), 50);
+  // Fetch one extra row to check if there's a next page without a COUNT query
+  const fetchLimit = safeLimit + 1;
+
+  const result = await pool.query<Job>(
+    `SELECT j.*, c.name AS company_name
+     FROM jobs j
+     JOIN companies c ON j.company_id = c.id
+     WHERE ${conditions.join(' AND ')}
+     ORDER BY j.id DESC
+     LIMIT $${i}`,
+    [...params, fetchLimit]
+  );
+
+  const hasMore = result.rows.length > safeLimit;
+  const data = hasMore ? result.rows.slice(0, safeLimit) : result.rows;
+  const nextCursor = hasMore ? data[data.length - 1].id : null;
+
+  return {
+    data,
+    pagination: { nextCursor, hasMore, limit: safeLimit },
+  };
+}
+
 async function findById(id: number): Promise<Job | null> {
   const result = await pool.query<Job>(
     `SELECT j.*, c.name AS company_name, c.website, c.logo_url
@@ -173,5 +242,5 @@ async function findByIdAndEmployer(jobId: number, employerId: number): Promise<J
   return result.rows[0] ?? null;
 }
 
-export { findAll, findById, findByCompanyId, create, update, remove, findByIdAndEmployer };
+export { findAll, findAllCursor, findById, findByCompanyId, create, update, remove, findByIdAndEmployer };
 

@@ -48,6 +48,16 @@ export interface JobFilters {
   limit?: number;
 }
 
+export interface CursorFilters {
+  search?: string;
+  job_type?: JobType;
+  location?: string;
+  salary_min?: number;
+  salary_max?: number;
+  cursor?: number;
+  limit?: number;
+}
+
 export interface Pagination {
   total: number;
   page: number;
@@ -55,9 +65,20 @@ export interface Pagination {
   totalPages: number;
 }
 
+export interface CursorPagination {
+  nextCursor: number | null;
+  hasMore: boolean;
+  limit: number;
+}
+
 export interface PaginatedResult<T> {
   data: T[];
   pagination: Pagination;
+}
+
+export interface CursorPaginatedResult<T> {
+  data: T[];
+  pagination: CursorPagination;
 }
 
 export interface Company {
@@ -90,6 +111,74 @@ export interface Application {
   resume_url: string | null;
   status: ApplicationStatus;
   applied_at: Date;
+}
+
+export interface CompanyFollow {
+  id: number;
+  user_id: number;
+  company_id: number;
+  followed_at: Date;
+}
+
+export interface JobAlert {
+  id: number;
+  user_id: number;
+  keywords: string | null;
+  job_type: JobType | null;
+  location: string | null;
+  created_at: Date;
+}
+
+export interface EmployerStats {
+  total_jobs_posted: number;
+  open_jobs: number;
+  total_applications_received: number;
+  applications_this_week: number;
+  most_applied_job: {
+    id: number;
+    title: string;
+    count: number;
+  } | null;
+}
+
+export type TrackerStatus =
+  | 'applied'
+  | 'assessment'
+  | 'interview'
+  | 'offer'
+  | 'rejected'
+  | 'ghosted'
+  | 'withdrawn';
+
+export interface TrackerEntry {
+  id: number;
+  user_id: number;
+  job_title: string;
+  company_name: string;
+  job_url: string | null;
+  platform: string | null;
+  location: string | null;
+  job_type: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  currency: string | null;
+  applied_date: Date;
+  deadline: Date | null;
+  application_status: TrackerStatus;
+  task_link: string | null;
+  task_deadline: Date | null;
+  interview_date: Date | null;
+  interview_type: string | null;
+  notes: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface TrackerFilters {
+  status?: TrackerStatus;
+  platform?: string;
+  sort?: 'applied_date' | 'deadline' | 'created_at';
+  order?: 'asc' | 'desc';
 }
 
 export class AppError extends Error {

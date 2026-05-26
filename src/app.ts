@@ -1,28 +1,60 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import morgan from 'morgan';
-import cookieParser from 'cookie-parser';
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import cookieParser from "cookie-parser";
+import path from "path";
 
-import routes from './routes';
-import { notFound, errorHandler } from './middlewares/error.middleware';
+import routes from "./routes";
+import { notFound, errorHandler } from "./middlewares/error.middleware";
+import { generalLimiter } from "./middlewares/rateLimiter.middleware";
 
 const app = express();
 
-app.use(helmet());
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+const allowedOrigins = (
+  process.env.ALLOWED_ORIGINS || "http://localhost:3000"
+).split(",");
+
+console.log("[CORS] Allowed origins:", allowedOrigins);
+
+const corsOptions = {
+  origin: (
+    origin: string | undefined,
+    callback: (err: Error | null, allow?: boolean) => void,
+  ) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log("[CORS] Blocked origin:", origin);
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
-}));
+  methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  maxAge: 86400,
+};
+
+// CORS and preflight must come before helmet and everything else
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
+
+app.use(helmet());
+app.use(generalLimiter);
 app.use(express.json());
 app.use(cookieParser());
-app.use(morgan('dev'));
+app.use(morgan("dev"));
 
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Server is running' });
+app.use(
+  "/uploads/logos",
+  express.static(path.join(process.cwd(), "uploads/logos")),
+);
+
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok", message: "Server is running" });
 });
 
-app.use('/api/v1', routes);
+app.use("/api/v1", routes);
 
 app.use(notFound);
 app.use(errorHandler);
