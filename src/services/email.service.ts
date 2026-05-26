@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { getTransporter } from '../config/mailer';
+import { getTransporter, FROM_ADDRESS } from '../config/mailer';
 
 async function sendApplicationConfirmation(data: {
   to: string;
@@ -10,7 +10,7 @@ async function sendApplicationConfirmation(data: {
   const transporter = await getTransporter();
 
   const info = await transporter.sendMail({
-    from: '"Job Board" <noreply@jobboard.com>',
+    from: FROM_ADDRESS,
     to: data.to,
     subject: `Application received — ${data.jobTitle}`,
     html: `
@@ -36,7 +36,7 @@ async function sendStatusUpdate(data: {
   const transporter = await getTransporter();
 
   const info = await transporter.sendMail({
-    from: '"Job Board" <noreply@jobboard.com>',
+    from: FROM_ADDRESS,
     to: data.to,
     subject: `Application update — ${data.jobTitle}`,
     html: `
@@ -64,7 +64,7 @@ async function sendJobAlert(data: {
   const transporter = await getTransporter();
 
   const info = await transporter.sendMail({
-    from: '"Job Board" <noreply@jobboard.com>',
+    from: FROM_ADDRESS,
     to: data.to,
     subject: `New job match — ${data.jobTitle}`,
     html: `
@@ -97,7 +97,7 @@ async function sendCompanyNewJob(data: {
   const transporter = await getTransporter();
 
   const info = await transporter.sendMail({
-    from: '"Job Board" <noreply@jobboard.com>',
+    from: FROM_ADDRESS,
     to: data.to,
     subject: `${data.companyName} just posted a new job`,
     html: `

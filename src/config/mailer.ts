@@ -2,6 +2,9 @@ import nodemailer, { Transporter } from 'nodemailer';
 
 let transporter: Transporter | null = null;
 
+export const FROM_ADDRESS =
+  process.env.SMTP_FROM ?? '"Job Board" <onboarding@resend.dev>';
+
 async function getTransporter(): Promise<Transporter> {
   if (transporter) return transporter;
 
