@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as applicationService from '../services/application.service';
 import { uploadResumeToCloudinary } from '../config/cloudinary';
-import { ApplicationStatus } from '../types';
+import { ApplicationStatus, AppError } from '../types';
 
 async function applyToJob(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -63,7 +63,20 @@ async function downloadResume(req: Request, res: Response, next: NextFunction): 
       Number(req.params.id),
       req.user!.id
     );
-    res.redirect(resumeUrl);
+
+    // Fetch the file from Cloudinary server-to-server, then stream it to the client.
+    // This avoids CORS issues that occur when the frontend fetch follows a cross-origin redirect.
+    const fileResponse = await fetch(resumeUrl);
+    if (!fileResponse.ok || !fileResponse.body) {
+      return next(new AppError('Resume file could not be retrieved', 404));
+    }
+
+    const contentType = fileResponse.headers.get('content-type') ?? 'application/octet-stream';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', 'attachment; filename="resume.pdf"');
+
+    const buffer = await fileResponse.arrayBuffer();
+    res.send(Buffer.from(buffer));
   } catch (error) {
     next(error);
   }
