@@ -3,9 +3,11 @@ CREATE TABLE IF NOT EXISTS users (
   name      VARCHAR(100) NOT NULL,
   email     VARCHAR(150) NOT NULL UNIQUE,
   password  VARCHAR(255) NOT NULL,
-  role      VARCHAR(20)  NOT NULL DEFAULT 'job_seeker'
-              CHECK (role IN ('job_seeker', 'employer', 'admin')),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  role          VARCHAR(20)  NOT NULL DEFAULT 'job_seeker'
+                  CHECK (role IN ('job_seeker', 'employer', 'admin')),
+  registered_as VARCHAR(20)  NOT NULL
+                  CHECK (registered_as IN ('job_seeker', 'employer')),
+  created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS refresh_tokens (

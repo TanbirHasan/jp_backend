@@ -5,6 +5,7 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  registered_as: 'job_seeker' | 'employer';
   created_at: Date;
 }
 
